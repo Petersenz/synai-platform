@@ -18,7 +18,7 @@ passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 
 # Google AI (SDK ใหม่)
-google-genai==1.0.0
+google-genai==1.60.0
 
 # Vector Database
 chromadb==0.4.22
