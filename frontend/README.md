@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎨 SynAI Frontend Interface
 
-## Getting Started
+This is the frontend layer of the **SynAI Platform**, built with a focus on high-performance, dark-mode aesthetics, and real-time AI interactions.
 
-First, run the development server:
+---
+
+## 🛠️ Technology Stack
+
+- **Framework**: Next.js 16.0.1 (App Router)
+- **Styling**: Tailwind CSS v4 (with custom brand themes)
+- **Animations**: Framer Motion for smooth transitions and micro-interactions
+- **Charts**: Recharts for visualizing LLM usage and token metrics
+- **State Management**: React Hooks & Context API
+- **Icons**: Lucide React
+
+---
+
+## 🚀 Key Features
+
+- **Real-time Chat Interface**: Built with streaming support and syntax highlighting (Markdown).
+- **Interactive Citations**: Visual footnote-style citations with tooltips directly from the RAG engine.
+- **FinOps Dashboard**: A comprehensive monitoring view of AI usage across the platform.
+- **Dynamic File Picker**: Integration with the backend File Manager for contextual AI chatting.
+- **Responsive Management**: Full Dark/Light mode support and mobile-first design.
+
+---
+
+## 📂 Project Structure
+
+- `/src/app`: Routes and Page components
+- `/src/components`: Reusable UI components (Shared, Layout, Chat, Settings)
+- `/src/lib`: API clients and utility functions
+- `/src/hooks`: Custom React hooks for authentication and data fetching
+
+---
+
+## ⚙️ Development
+
+First, install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Run the development server:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The interface will be available at
 
-## Learn More
+http://localhost:3000.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
