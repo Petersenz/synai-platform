@@ -1,0 +1,245 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand Colors - Syn Red */
+  --color-brand-red: #de1e22;
+  --color-brand-red-dark: #ba0e12;
+  --color-brand-red-light: #ff3b30;
+
+  /* Theme-aware colors */
+  --color-app-bg: var(--bg-main);
+  --color-app-card: var(--bg-card);
+  --color-app-card-hover: var(--bg-card-hover);
+  --color-app-border: var(--border-main);
+
+  --color-app-text: var(--text-primary);
+  --color-app-text-secondary: var(--text-secondary);
+  --color-app-text-muted: var(--text-muted);
+
+  /* Fonts */
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Animations */
+  --animate-fade-in: fade-in 0.3s ease-in-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+  --animate-pulse-slow: pulse 3s infinite;
+}
+
+:root {
+  /* Brand Colors */
+  --brand-red: #de1e22;
+  --brand-red-dark: #ba0e12;
+  --brand-red-light: #ff3b30;
+
+  /* Dark Mode Variables (Default) */
+  --bg-main: #0a0a0a;
+  --bg-card: #141414;
+  --bg-card-hover: #1a1a1a;
+  --border-main: #262626;
+
+  --text-primary: #ffffff;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+}
+
+.light {
+  /* Brand Colors Override if needed (Keep same for brand consistency) */
+  --brand-red: #de1e22;
+  --brand-red-dark: #ba0e12;
+  --brand-red-light: #ff3b30;
+
+  /* Light Mode Variables */
+  --bg-main: #ffffff;
+  --bg-card: #f8f9fa;
+  --bg-card-hover: #f1f3f5;
+  --border-main: #e9ecef;
+
+  --text-primary: #000000;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+}
+
+/* ===== Keyframes ===== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ===== Base Styles ===== */
+@layer base {
+  * {
+    @apply border-app-border transition-colors duration-200;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-app-bg text-app-text antialiased font-sans;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-app-bg;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-app-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-app-card-hover;
+  }
+}
+
+/* ===== Component Styles ===== */
+@layer components {
+  /* Glass Effect */
+  .glass {
+    @apply bg-app-card/80 backdrop-blur-xl border border-app-border;
+  }
+
+  /* Glow Effect */
+  .glow-red {
+    box-shadow: 0 4px 20px rgba(222, 30, 34, 0.15);
+  }
+
+  /* Gradient Text */
+  .gradient-text {
+    @apply bg-linear-to-r from-brand-red to-brand-red-light bg-clip-text text-transparent;
+  }
+
+  /* Button Primary */
+  .btn-primary {
+    @apply bg-brand-red hover:bg-brand-red-dark text-white font-medium 
+           px-4 py-2 rounded-lg transition-all duration-200 
+           hover:shadow-lg hover:shadow-brand-red/20 active:scale-95;
+  }
+
+  /* Button Secondary */
+  .btn-secondary {
+    @apply bg-app-card hover:bg-app-card-hover text-app-text 
+           border border-app-border font-medium px-4 py-2 rounded-lg 
+           transition-all duration-200;
+  }
+
+  /* Card */
+  .card {
+    @apply bg-app-card border border-app-border rounded-xl p-4 shadow-sm;
+  }
+
+  /* Input */
+  .input {
+    @apply bg-app-bg border border-app-border rounded-lg px-4 py-2 
+           text-app-text placeholder:text-app-text-muted
+           focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red
+           transition-all duration-200;
+  }
+}
+
+/* ===== Utility Styles ===== */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ===== Prose/Markdown Styles ===== */
+.prose {
+  @apply text-app-text max-w-none;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+  @apply text-app-text font-bold mt-6 mb-4 flex items-center gap-2;
+}
+
+.prose h1 {
+  @apply text-xl;
+}
+.prose h2 {
+  @apply text-lg;
+}
+.prose h3 {
+  @apply text-base text-brand-red-light;
+}
+
+.prose p {
+  @apply text-app-text/90 leading-7 mb-4;
+}
+
+.prose a {
+  @apply text-brand-red hover:underline font-medium;
+}
+
+.prose code {
+  @apply bg-app-bg px-1.5 py-0.5 rounded text-brand-red-light text-[13px] font-mono border border-app-border;
+}
+
+.prose pre {
+  @apply bg-app-bg border border-app-border rounded-xl p-4 my-4 overflow-x-auto shadow-inner;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0 border-none text-app-text-secondary;
+}
+
+.prose ul,
+.prose ol {
+  @apply text-app-text/90 mb-4 ml-6 space-y-2;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose li::marker {
+  @apply text-brand-red font-bold;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-brand-red/40 bg-brand-red/5 pl-4 py-2 pr-2 italic text-app-text-secondary rounded-r-lg my-4;
+}
+
+.prose table {
+  @apply w-full border-collapse my-4 text-sm;
+}
+
+.prose th {
+  @apply bg-app-card border border-app-border p-2 text-left font-bold text-brand-red-light;
+}
+
+.prose td {
+  @apply border border-app-border p-2;
+}
+
+.prose tr:hover td {
+  @apply bg-app-card/30;
+}

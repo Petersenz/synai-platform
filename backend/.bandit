@@ -1,0 +1,17 @@
+[bandit]
+exclude_dirs = [
+    "/backend/test",
+    "/backend/__pycache__",
+    "/backend/.pytest_cache",
+    "/backend/venv",
+    "/backend/env"
+]
+
+# Skip specific test IDs (if needed)
+# skips = B101,B601
+
+# Severity level: low, medium, high
+severity = medium
+
+# Confidence level: low, medium, high  
+confidence = medium

@@ -1,0 +1,100 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-platform-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: ai_platform
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ai_platform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: ai-platform-redis
+    command: redis-server --requirepass redis123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ai-network
+
+  # ChromaDB for Vector Storage (RAG)
+  chromadb:
+    image: chromadb/chroma:0.4.22
+    container_name: ai-platform-chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+      - CHROMA_SERVER_HOST=0.0.0.0
+    expose:
+      - "8000"
+    networks:
+      - ai-network
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ai-platform-backend
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres123@postgres:5432/ai_platform
+      - REDIS_URL=redis://:redis123@redis:6379/0
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-1234567890
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRATION_HOURS=24
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-your-google-api-key}
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - UPLOAD_DIR=/app/uploads
+      - CHROMA_PATH=/app/chroma_data
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend:/app
+      - uploaded_files:/app/uploads
+      - chroma_data:/app/chroma_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
+  uploaded_files:
+
+networks:
+  ai-network:
+    driver: bridge

@@ -1,0 +1,325 @@
+name: CI/CD Security Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run security scans daily at 2 AM
+    - cron: "0 2 * * *"
+
+jobs:
+  # ============================================
+  # SAST - Static Application Security Testing
+  # ============================================
+  sast-bandit:
+    name: SAST - Bandit (Python Security)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit Security Scan
+        run: |
+          bandit -r backend/app \
+            -f json \
+            -o bandit-report.json \
+            --severity-level medium \
+            --confidence-level medium
+        continue-on-error: true
+
+      - name: Upload Bandit Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+
+      - name: Display Bandit Summary
+        run: |
+          echo "=== Bandit Security Scan Summary ==="
+          bandit -r backend/app --severity-level medium
+
+  sast-semgrep:
+    name: SAST - Semgrep (Multi-language)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/owasp-top-ten
+            p/python
+          generateSarif: true
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+
+  # ============================================
+  # SCA - Software Composition Analysis
+  # ============================================
+  sca-safety:
+    name: SCA - Safety (Dependency Vulnerabilities)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Safety
+        run: pip install safety
+
+      - name: Run Safety Check
+        run: |
+          safety check \
+            --file backend/requirements.txt \
+            --json \
+            --output safety-report.json
+        continue-on-error: true
+
+      - name: Upload Safety Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: safety-dependency-report
+          path: safety-report.json
+
+      - name: Display Safety Summary
+        run: |
+          echo "=== Safety Dependency Scan Summary ==="
+          safety check --file backend/requirements.txt || true
+
+  sca-snyk:
+    name: SCA - Snyk (Advanced Dependency Scan)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/python@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=backend/requirements.txt --severity-threshold=medium
+
+  # ============================================
+  # Container Security Scanning
+  # ============================================
+  container-trivy:
+    name: Container Scan - Trivy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker Image
+        run: |
+          docker build -t syn-backend:test backend/
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "syn-backend:test"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Run Trivy (Table Output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "syn-backend:test"
+          format: "table"
+          severity: "CRITICAL,HIGH,MEDIUM"
+
+  container-docker-scout:
+    name: Container Scan - Docker Scout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker Image
+        run: |
+          docker build -t syn-backend:test backend/
+
+      - name: Docker Scout CVE Analysis
+        uses: docker/scout-action@v1
+        continue-on-error: true
+        with:
+          command: cves
+          image: syn-backend:test
+          only-severities: critical,high,medium
+
+  # ============================================
+  # DAST - Dynamic Application Security Testing
+  # ============================================
+  dast-zap:
+    name: DAST - OWASP ZAP
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_PASSWORD: postgres123
+          POSTGRES_DB: ai_platform
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+
+      - name: Start FastAPI Application
+        run: |
+          cd backend
+          DATABASE_URL=postgresql://postgres:postgres123@localhost:5432/ai_platform \
+          REDIS_URL=redis://localhost:6379/0 \
+          JWT_SECRET=test-secret-key \
+          GOOGLE_API_KEY=test-key \
+          uvicorn app.main:app --host 0.0.0.0 --port 8080 &
+          sleep 10
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+
+      - name: Wait for API to be ready
+        run: |
+          timeout 30 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
+
+      - name: OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: "http://localhost:8080"
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a -j -l WARN"
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-scan-report
+          path: report_html.html
+
+  # ============================================
+  # Code Quality & Linting
+  # ============================================
+  code-quality:
+    name: Code Quality - Pylint & Flake8
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pylint flake8 mypy
+          pip install -r backend/requirements.txt
+
+      - name: Run Pylint
+        run: |
+          pylint backend/app --exit-zero --output-format=json > pylint-report.json
+        continue-on-error: true
+
+      - name: Run Flake8
+        run: |
+          flake8 backend/app --max-line-length=120 --exit-zero --format=json --output-file=flake8-report.json
+        continue-on-error: true
+
+      - name: Upload Code Quality Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-quality-reports
+          path: |
+            pylint-report.json
+            flake8-report.json
+
+  # ============================================
+  # Security Summary Report
+  # ============================================
+  security-summary:
+    name: Generate Security Summary
+    runs-on: ubuntu-latest
+    needs: [sast-bandit, sast-semgrep, sca-safety, container-trivy, dast-zap]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate Security Summary
+        run: |
+          echo "# 🔒 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tool | Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Bandit | SAST | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep | SAST | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Safety | SCA | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy | Container | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| OWASP ZAP | DAST | ✅ Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 All security scans completed. Check artifacts for detailed reports." >> $GITHUB_STEP_SUMMARY

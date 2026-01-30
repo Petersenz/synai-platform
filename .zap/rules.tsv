@@ -1,0 +1,19 @@
+# ZAP Scanning Rules Configuration
+# Format: ID	THRESHOLD	[IGNORE]	[DESCRIPTION]
+
+# Ignore false positives for development
+10202	IGNORE	0	Absence of Anti-CSRF Tokens (Dev environment)
+10096	IGNORE	0	Timestamp Disclosure (Not critical)
+10015	IGNORE	0	Re-examine Cache-control Directives (API responses)
+
+# Medium severity - WARN only
+10021	WARN	0	X-Content-Type-Options Header Missing
+10020	WARN	0	X-Frame-Options Header Missing
+10016	WARN	0	Web Browser XSS Protection Not Enabled
+
+# High severity - FAIL
+90022	FAIL	0	Application Error Disclosure
+40012	FAIL	0	Cross Site Scripting (Reflected)
+40014	FAIL	0	Cross Site Scripting (Persistent)
+90019	FAIL	0	Server Side Code Injection
+7	FAIL	0	Remote File Inclusion
