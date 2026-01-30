@@ -15,7 +15,7 @@ redis==5.0.1
 # Authentication
 python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
-bcrypt==4.1.2
+bcrypt==5.0.0
 
 # Google AI (SDK ใหม่)
 google-genai==1.0.0
