@@ -1,13 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    turbo: {
-      resolveAlias: {
-        "@": "./src",
-      },
-    },
-  },
+  reactStrictMode: true,
+  output: "standalone",
+  serverExternalPackages: ["lightningcss"],
 };
 
 export default nextConfig;
