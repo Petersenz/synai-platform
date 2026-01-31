@@ -59,8 +59,15 @@ jobs:
       - name: Run Database Migrations
         run: |
           cd backend
-          # Initialize database schema
-          python -c "from app.database import engine, Base; import asyncio; asyncio.run(engine.begin())"
+          python - <<EOF
+          import asyncio
+          from app.database import engine, Base
+          async def init_db():
+              async with engine.begin() as conn:
+                  await conn.run_sync(Base.metadata.create_all)
+              await engine.dispose()
+          asyncio.run(init_db())
+          EOF
         env:
           DATABASE_URL: postgresql://postgres:postgres123@localhost:5432/ai_platform
           REDIS_URL: redis://localhost:6379/0
@@ -122,7 +129,8 @@ jobs:
       - name: Build
         run: |
           cd frontend
-          npm run build
+          # Force build despite warnings to see the result
+          NEXT_TELEMETRY_DISABLED=1 npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080
 
