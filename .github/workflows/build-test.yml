@@ -123,7 +123,7 @@ jobs:
       - name: Install dependencies
         run: |
           cd frontend
-          npm ci
+          npm install
 
       - name: Lint
         run: |
@@ -133,8 +133,6 @@ jobs:
       - name: Build
         run: |
           cd frontend
-          # Install platform-specific dependencies for LightningCSS/Turbopack
-          npm install --platform=linux --arch=x64
           NEXT_TELEMETRY_DISABLED=1 npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080
