@@ -133,7 +133,8 @@ jobs:
       - name: Build
         run: |
           cd frontend
-          # Force build despite warnings to see the result
+          # Install platform-specific dependencies for LightningCSS/Turbopack
+          npm install --platform=linux --arch=x64
           NEXT_TELEMETRY_DISABLED=1 npm run build
         env:
           NEXT_PUBLIC_API_URL: http://localhost:8080
