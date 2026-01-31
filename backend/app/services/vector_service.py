@@ -17,17 +17,32 @@ class VectorService:
     
     @classmethod
     def get_client(cls):
-        """Get or create a Persistent ChromaDB client (Direct File Access)"""
+        """Get or create a ChromaDB client (HttpClient for Docker, Persistent for Local)"""
         if cls._client is not None:
             return cls._client
 
-        # Get the path from environment variable or use local directory
-        chroma_path = os.getenv("CHROMA_PATH", "chroma_data")
+        # Prefer HttpClient if CHROMA_HOST is set (for Docker/Production)
+        chroma_host = os.getenv("CHROMA_HOST")
+        chroma_port = os.getenv("CHROMA_PORT", "8000")
         
-        print(f"\n>>> [CHROMA-LOCAL] � Initializing Persistent Client at: {chroma_path}", flush=True)
+        if chroma_host and chroma_host != "localhost":
+            print(f"\n>>> [CHROMA-CLIENT] 🚀 Connecting to Remote Server at {chroma_host}:{chroma_port}", flush=True)
+            try:
+                cls._client = chromadb.HttpClient(
+                    host=chroma_host,
+                    port=int(chroma_port),
+                    settings=ChromaSettings(anonymized_telemetry=False)
+                )
+                print(f">>> [CHROMA-CLIENT] ✅ SUCCESS: Connected to ChromaDB Server.", flush=True)
+                return cls._client
+            except Exception as e:
+                print(f">>> [CHROMA-CLIENT] ⚠️ Connection failed: {str(e)}. Falling back to local.", flush=True)
+
+        # Fallback/Local: PersistentClient reads/writes directly to the disk path
+        chroma_path = os.getenv("CHROMA_PATH", "chroma_data")
+        print(f"\n>>> [CHROMA-LOCAL] 🏠 Initializing Persistent Client at: {chroma_path}", flush=True)
         
         try:
-            # PersistentClient reads/writes directly to the disk path
             cls._client = chromadb.PersistentClient(
                 path=chroma_path,
                 settings=ChromaSettings(
@@ -58,7 +73,8 @@ class VectorService:
         content_objects = cls._extract_with_metadata(file_path)
         
         if not content_objects:
-            raise ValueError("Could not extract text from document")
+            print(f">>> [VECTOR-SERVICE] ⚠️ Skipping vectorization for {file_path} (No text extracted)")
+            return None
         
         # Split into chunks while preserving metadata
         chunks = []

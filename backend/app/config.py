@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     JWT_EXPIRATION_HOURS: int = 24
     
     # Google AI
-    GOOGLE_API_KEY: str = ""
+    GOOGLE_API_KEY: str = "AIzaSyB-KJ4PsJ7TNvzoYRDdFcWavH71tUkD4v4"
     
     # ChromaDB
     CHROMA_HOST: str = "localhost"

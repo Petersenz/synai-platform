@@ -386,7 +386,7 @@ async def chat_with_file(
         result = await db.execute(select(ChatSession).where(ChatSession.id == active_session_id, ChatSession.user_id == current_user.id))
         session = result.scalar_one_or_none()
     else:
-        session = ChatSession(user_id=current_user.id, title=f"Analysis of {file.filename}"[:50])
+        session = ChatSession(user_id=current_user.id, title=f"Analysis of {files[0].filename}"[:50])
         db.add(session)
         await db.commit()
         await db.refresh(session)

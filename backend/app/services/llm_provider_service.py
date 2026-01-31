@@ -107,7 +107,10 @@ class LLMProviderService:
     
     @staticmethod
     async def get_providers(db: AsyncSession, user_id: Any, active_only: bool = False) -> List[LLMProvider]:
-        """Get all providers for a user"""
+        """Get all providers for a user with auto-seeding if empty"""
+        # Check and seed if necessary
+        await LLMProviderService._ensure_default_provider(db, user_id)
+        
         query = select(LLMProvider).filter(LLMProvider.user_id == user_id)
         
         if active_only:
@@ -132,17 +135,55 @@ class LLMProviderService:
     
     @staticmethod
     async def get_default_provider(db: AsyncSession, user_id: Any) -> Optional[LLMProvider]:
-        """Get the default provider for a user"""
-        result = await db.execute(
-            select(LLMProvider).filter(
-                and_(
-                    LLMProvider.user_id == user_id,
-                    LLMProvider.is_default == True,
-                    LLMProvider.is_active == True
-                )
+        """Get the default provider for a user with auto-seeding if empty"""
+        query = select(LLMProvider).filter(
+            and_(
+                LLMProvider.user_id == user_id,
+                LLMProvider.is_default == True,
+                LLMProvider.is_active == True
             )
         )
-        return result.scalar_one_or_none()
+        result = await db.execute(query)
+        provider = result.scalar_one_or_none()
+        
+        if not provider:
+            # Try to seed if they have nothing at all
+            provider = await LLMProviderService._ensure_default_provider(db, user_id)
+            
+        return provider
+
+    @staticmethod
+    async def _ensure_default_provider(db: AsyncSession, user_id: Any) -> Optional[LLMProvider]:
+        """Check if user has any providers, if not, create a default one from system settings"""
+        from sqlalchemy import func
+        from app.config import settings
+        
+        # Count providers for this user
+        count_query = select(func.count()).select_from(LLMProvider).filter(LLMProvider.user_id == user_id)
+        count_result = await db.execute(count_query)
+        count = count_result.scalar()
+        
+        if count == 0 and settings.GOOGLE_API_KEY:
+            # Seed default Gemini
+            available = PROVIDER_MODELS.get(ProviderType.GOOGLE, [])
+            models_str = ",".join([m["id"] for m in available])
+            
+            new_provider = LLMProvider(
+                user_id=user_id,
+                provider_type=ProviderType.GOOGLE,
+                provider_name="Google Gemini (SynAI Default)",
+                api_key=settings.GOOGLE_API_KEY,
+                default_model="gemini-2.5-flash",
+                available_models=models_str,
+                is_active=True,
+                is_default=True
+            )
+            db.add(new_provider)
+            await db.commit()
+            await db.refresh(new_provider)
+            return new_provider
+        
+        return None
     
     @staticmethod
     async def update_provider(
