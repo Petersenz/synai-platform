@@ -242,7 +242,7 @@ jobs:
           timeout 30 bash -c 'until curl -f http://localhost:8080/health; do sleep 2; done'
 
       - name: OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         continue-on-error: true
         with:
           target: "http://localhost:8080"
