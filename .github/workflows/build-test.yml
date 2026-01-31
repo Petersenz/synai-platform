@@ -173,18 +173,18 @@ jobs:
 
       - name: Start services with Docker Compose
         run: |
-          docker-compose up -d
+          docker compose up -d
           sleep 30
 
       - name: Check services health
         run: |
-          docker-compose ps
+          docker compose ps
 
           # Check PostgreSQL
-          docker-compose exec -T postgres pg_isready -U postgres
+          docker compose exec -T postgres pg_isready -U postgres
 
           # Check Redis
-          docker-compose exec -T redis redis-cli -a redis123 ping
+          docker compose exec -T redis redis-cli -a redis123 ping
 
           # Check Backend API
           curl -f http://localhost:8080/health || exit 1
@@ -204,9 +204,9 @@ jobs:
       - name: Show logs on failure
         if: failure()
         run: |
-          docker-compose logs
+          docker compose logs
 
       - name: Cleanup
         if: always()
         run: |
-          docker-compose down -v
+          docker compose down -v
