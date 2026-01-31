@@ -447,24 +447,32 @@ async def chat_with_file(
     provider = await LLMProviderService.get_provider(db, int(provider_id), current_user.id) if (provider_id and provider_id.lower() != "none") else await LLMProviderService.get_default_provider(db, current_user.id)
     model_to_use = model or provider.default_model or "gemini-2.0-flash"
     
-    ll_resp = await LLMService.generate_response(
-        message=message, provider=provider, model=model_to_use, context=rag_context,
-        history=await MemoryService.get_context(db, session.id),
-        file_name=", ".join(f.original_filename for f in new_files),
-        images=images if images else None
-    )
-    
-    c_list = sorted(unique_citations.values(), key=lambda x: x.relevance_score, reverse=True)
-    db.add(ChatMessage(session_id=session.id, role="user", content=f"[Uploaded: {', '.join(f.original_filename for f in new_files)}]\n\n{message}", file_ids=[uuid.UUID(fid) for fid in final_fids]))
-    ai_msg = ChatMessage(session_id=session.id, role="assistant", content=ll_resp["content"], tokens_used=ll_resp["total_tokens"], citations=[c.model_dump() for c in c_list])
-    db.add(ai_msg)
-    await db.commit()
+    try:
+        ll_resp = await LLMService.generate_response(
+            message=message, provider=provider, model=model_to_use, context=rag_context,
+            history=await MemoryService.get_context(db, session.id),
+            file_name=", ".join(f.original_filename for f in new_files),
+            images=images if images else None
+        )
+        
+        c_list = sorted(unique_citations.values(), key=lambda x: x.relevance_score, reverse=True)
+        db.add(ChatMessage(session_id=session.id, role="user", content=f"[Uploaded: {', '.join(f.original_filename for f in new_files)}]\n\n{message}", file_ids=[uuid.UUID(fid) for fid in final_fids]))
+        ai_msg = ChatMessage(session_id=session.id, role="assistant", content=ll_resp["content"], tokens_used=ll_resp["total_tokens"], citations=[c.model_dump() for c in c_list])
+        db.add(ai_msg)
+        await db.commit()
 
-    return {
-        "message_id": str(ai_msg.id), "session_id": str(session.id), "content": ll_resp["content"],
-        "citations": c_list, "tokens_used": ll_resp["total_tokens"], "created_at": ai_msg.created_at.isoformat(),
-        "new_files": [{"id": str(f.id), "filename": f.filename, "original_filename": f.original_filename} for f in new_files]
-    }
+        return {
+            "message_id": str(ai_msg.id), "session_id": str(session.id), "content": ll_resp["content"],
+            "citations": c_list, "tokens_used": ll_resp["total_tokens"], "created_at": ai_msg.created_at.isoformat(),
+            "new_files": [{"id": str(f.id), "filename": f.filename, "original_filename": f.original_filename} for f in new_files]
+        }
+    except Exception as e:
+        # Prevent stack trace leakage to satisfy Security/CodeQL
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="ขออภัยครับ เกิดข้อผิดพลาดทางเทคนิคในการสื่อสารกับ AI กรุณาลองใหม่อีกครั้ง หรือติดต่อผู้ดูแลระบบครับ"
+        )
 
 # ============== Session Endpoints ==============
 
