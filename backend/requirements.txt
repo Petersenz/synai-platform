@@ -21,7 +21,7 @@ bcrypt==4.1.2
 google-genai==1.0.0
 
 # Vector Database
-chromadb==0.4.22
+chromadb==1.4.1
 
 # Document Processing
 pypdf==6.6.2
