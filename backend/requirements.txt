@@ -10,7 +10,7 @@ psycopg2-binary==2.9.9
 alembic==1.13.1
 
 # Redis
-redis==5.0.1
+redis==7.1.0
 
 # Authentication
 python-jose[cryptography]==3.4.0
